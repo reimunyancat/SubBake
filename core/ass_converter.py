@@ -14,15 +14,15 @@ _FONT_COLOR_RE = re.compile(
 _HEADER = """[Script Info]
 Title: SubBake subtitle
 ScriptType: v4.00+
-PlayResX: 640
-PlayResY: 360
+PlayResX: 1920
+PlayResY: 1080
 WrapStyle: 0
 ScaledBorderAndShadow: yes
 YCbCr Matrix: TV.709
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Arial,36,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,2,1,2,20,20,24,1
+Style: Default,Arial,44,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,2,1,2,20,20,36,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -47,12 +47,12 @@ def _smi_color_to_ass(color: str) -> str | None:
 def _text_to_ass(text: str) -> str:
     def _open_tag(m: re.Match) -> str:
         code = _smi_color_to_ass(m.group(1))
-        return "{"+code+"}" if code else ""
+        return "{" + code + "}" if code else ""
     out = _FONT_COLOR_RE.sub(_open_tag, text)
     out = re.sub(r'</font\s*>', r'{\\r}', out, flags=re.IGNORECASE)
     out = re.sub(r'<[^>]+>', '', out)
-    out = out.replace('\n', '\\N')
-    return out
+    out = re.sub(r'\s*\n\s*', '\n', out).strip()
+    return out.replace('\n', '\\N')
 
 def entries_to_ass(entries: list[SubtitleEntry]) -> str:
     lines: list[str] = []
