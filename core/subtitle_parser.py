@@ -44,7 +44,7 @@ def needs_conversion(fmt: SubFormat) -> bool:
 def parse_smi(content: str) -> list[SubtitleEntry]:
     pattern = re.compile(
         r'<SYNC\s+Start\s*=\s*(\d+)\s*>\s*<P[^>]*>\s*(.*?)\s*(?=<SYNC|</BODY>|$)',
-        re.IGNORECASE | re.DOTALL
+        re.IGNORECASE | re.DOTALL,
     )
     raw: list[tuple[int, str]] = []
     for m in pattern.finditer(content):
@@ -52,14 +52,14 @@ def parse_smi(content: str) -> list[SubtitleEntry]:
         text = m.group(2).strip()
         text = re.sub(r'&nbsp;', ' ', text, flags=re.IGNORECASE)
         text = re.sub(r'<br\s*/?>', '\n', text, flags=re.IGNORECASE)
-        text = re.sub(r'<[^>]+>', '', text).strip()
+        text = re.sub(r'<(?!/?font\b)[^>]+>', '', text, flags=re.IGNORECASE)
         raw.append((ts, text))
     entries: list[SubtitleEntry] = []
     for i, (start, text) in enumerate(raw):
-        if not text:
+        if not re.sub(r'<[^>]+>', '', text).strip():
             continue
-        end = raw[i+1][0] if i + 1 < len(raw) else start + 3000
-        entries.append(SubtitleEntry(start_ms=start, end_ms=end, text=text))
+        end = raw[i + 1][0] if i + 1 < len(raw) else start + 3000
+        entries.append(SubtitleEntry(start_ms=start, end_ms=end, text=text.strip()))
     return entries
 
 _VTT_TS = r'(?:\d{1,2}:)?\d{2}:\d{2}\.\d{3}'
