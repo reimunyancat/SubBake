@@ -14,4 +14,5 @@ sample.smi
 sample_out.srt
 sample.mkv
 sample_muxed.mkv
+sample_out.ass
 ffmpeg/ffmpeg
