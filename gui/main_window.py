@@ -160,7 +160,7 @@ class MainWindow(QMainWindow):
         self.btn_cancel.clicked.connect(self._cancel)
 
     def _retranslate(self):
-        self.setWindowTitle("SubBake — Subtitle Muxer")
+        self.setWindowTitle("SubBake")
         self.lbl_title.setText("SubBake")
         self.lbl_subtitle.setText("The easiest way to embed subtitles into MKV / MP4 / WebM")
         self.btn_add_files.setText("Add files")
