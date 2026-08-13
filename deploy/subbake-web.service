@@ -1,0 +1,38 @@
+[Unit]
+Description=SubBake web demo
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=subbake
+Group=subbake
+WorkingDirectory=/opt/subbake
+Environment=SUBBAKE_WORK_DIR=/var/lib/subbake/jobs
+Environment=SUBBAKE_MAX_UPLOAD_MB=512
+Environment=SUBBAKE_JOB_TTL=3600
+Environment=SUBBAKE_JOB_TIMEOUT=900
+Environment=SUBBAKE_MAX_ACTIVE_JOBS=4
+ExecStart=/opt/subbake/.venv/bin/uvicorn web.server:app --host 127.0.0.1 --port 8770 --root-path /subbake
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+ReadWritePaths=/var/lib/subbake
+MemoryMax=2G
+CPUQuota=200%
+TasksMax=256
+
+[Install]
+WantedBy=multi-user.target

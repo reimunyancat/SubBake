@@ -1,51 +1,20 @@
 # SubBake
 
-A lightweight desktop application for converting and muxing subtitle files with video. It provides a simple drag‑and‑drop GUI built with Python.
+The easiest way to embed subtitles into MKV / MP4 / WebM — as a muxed track, not a burn-in.
 
 ## Features
 
-- Convert between **ASS** and **SRT** subtitle formats.
-- Automatically download and use **FFmpeg** for muxing subtitles into video files.
-- Detect and handle various text encodings.
-- Straightforward GUI for selecting input files, output format, and destination.
-
-## Project Structure
-
-```
-download_ffmpeg.py      # Script that downloads FFmpeg binaries if not present
-main.py                # Entry point that launches the GUI
-README.md              # This file
-LICENSE                # License information
-requirements.txt       # Python dependencies
-core/                  # Core conversion and muxing logic
-	ass_converter.py
-	ffmpeg_locator.py
-	muxer.py
-	srt_converter.py
-	subtitle_parser.py
-gui/                   # GUI components (built with PyQt/PySide)
-	drop_area.py
-	log_panel.py
-	main_window.py
-	styles.py
-	worker.py
-utils/                 # Helper utilities
-	encoding.py
-	file_matcher.py
-```
-
-## Installation
-
-```bash
-# Install required Python packages
-pip install -r requirements.txt
-
-# (Optional) Download FFmpeg binaries
-python download_ffmpeg.py
-
-# Run the application
-python main.py
-```
+- Multi-format subtitles: SMI, SRT, ASS, SSA, VTT, SUP (PGS) with automatic detection
+- SMI fansub colors preserved via SMI to ASS conversion (per-speaker styling survives)
+- Multi-container output: MKV, MP4, WebM with automatic per-container codec selection
+- Drag and drop or click to browse — files and folders, mixed multi-select
+- Automatic pairing of same-named video and subtitle files (subfolder-safe)
+- Live per-file progress via FFmpeg -progress, overall queue progress
+- Sync offset adjustment in 100 ms steps (±30 s)
+- Safe cancellation: queued tasks drop out, running tasks stop cleanly
+- Encoding auto-detection (chardet, EUC-KR fallback) for legacy Korean subtitles
+- English / Korean UI with a runtime language toggle
+- Bundled FFmpeg — single executable, nothing else to install
 
 ## Usage
 

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SubBake</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <h1>SubBake</h1>
+      <p class="tagline">
+        The easiest way to embed subtitles into MKV / MP4 / WebM
+      </p>
+      <section id="drop" class="drop">
+        <span>Drop a video and a subtitle file here</span>
+        <small id="picked">No files selected</small>
+        <input id="picker" type="file" multiple hidden />
+      </section>
+      <div class="options">
+        <label
+          >Language
+          <select id="language">
+            <option value="kor">kor</option>
+            <option value="eng">eng</option>
+            <option value="jpn">jpn</option>
+            <option value="chi">chi</option>
+            <option value="und">und</option>
+          </select>
+        </label>
+        <label
+          >Sync (ms)
+          <input
+            id="offset"
+            type="number"
+            value="0"
+            step="100"
+            min="-30000"
+            max="30000"
+          />
+        </label>
+        <label class="check">
+          <input id="setDefault" type="checkbox" checked /> Default track
+        </label>
+      </div>
+      <button id="start" class="start">SubBake it</button>
+      <div class="bar"><div id="fill" class="fill"></div></div>
+      <p id="status" class="status">Waiting for files</p>
+      <a id="download" class="download" hidden>Download result</a>
+      <footer id="footer">
+        GPL v3 · FFmpeg bundled · files are deleted automatically
+      </footer>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,140 @@
+:root {
+  --bg: #1e1f22;
+  --panel: #26282c;
+  --line: #3a3d42;
+  --text: #d6d8db;
+  --muted: #8b9096;
+  --accent: #5b8def;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", "Apple SD Gothic Neo", sans-serif;
+}
+.shell {
+  width: min(680px, 92vw);
+  padding: 32px 0;
+}
+h1 {
+  margin: 0;
+  text-align: center;
+  font-size: 26px;
+  color: var(--text);
+}
+.tagline {
+  margin: 6px 0 22px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 42px 20px;
+  border: 2px dashed var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+}
+.drop.hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.drop small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.options {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+  align-items: center;
+}
+.options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+select,
+input[type="number"] {
+  background: #2b2d31;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 7px 10px;
+  color: var(--text);
+}
+.start {
+  width: 100%;
+  padding: 13px;
+  border: 0;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  background: #3d5a99;
+}
+.start:hover {
+  background: #4768ac;
+}
+.start:disabled {
+  background: #2b2d31;
+  color: #565a61;
+  cursor: not-allowed;
+}
+.bar {
+  margin-top: 18px;
+  height: 20px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  background: #26282c;
+  overflow: hidden;
+}
+.fill {
+  height: 100%;
+  width: 0;
+  background: #3d5a99;
+  transition: width 0.2s;
+}
+.status {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+.download {
+  display: block;
+  margin-top: 14px;
+  padding: 12px;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 600;
+  color: #fff;
+  border-radius: 6px;
+  background: #3f6b4f;
+}
+.download:hover {
+  background: #4a7d5c;
+}
+footer {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 11px;
+  color: #565a61;
+}

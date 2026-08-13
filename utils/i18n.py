@@ -202,4 +202,3 @@ def t(key: str, **kwargs) -> str:
         return text.format(**kwargs)
     except (KeyError, IndexError):
         return text
-    

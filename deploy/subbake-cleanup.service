@@ -1,0 +1,6 @@
+[Unit]
+Description=Purge stale SubBake job directories
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/find /var/lib/subbake/jobs -mindepth 1 -maxdepth 1 -type d -mmin +120 -exec rm -rf {} +

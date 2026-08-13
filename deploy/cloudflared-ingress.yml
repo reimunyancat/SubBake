@@ -1,0 +1,10 @@
+tunnel: rnc-main
+credentials-file: /etc/cloudflared/rnc-main.json
+
+ingress:
+  - hostname: flit.reimunyancat.com
+    service: http://127.0.0.1:7777
+  - hostname: reimunyancat.com
+    path: ^/subbake(/.*)?$
+    service: http://127.0.0.1:80
+  - service: http_status:404
