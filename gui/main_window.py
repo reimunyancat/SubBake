@@ -1,11 +1,5 @@
 from pathlib import Path
-from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QFileDialog, QTableWidget, QTableWidgetItem,
-    QProgressBar, QComboBox, QCheckBox, QLabel, QHeaderView,
-    QMessageBox, QStatusBar, QSpinBox, QApplication,
-    QSystemTrayIcon,
-)
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog, QTableWidget, QTableWidgetItem, QProgressBar, QComboBox, QCheckBox, QLabel, QHeaderView, QMessageBox, QStatusBar, QSpinBox, QApplication, QSystemTrayIcon
 from PySide6.QtCore import Qt, QThreadPool
 from PySide6.QtGui import QIcon, QPixmap, QColor
 from gui.styles import MAIN_STYLE
@@ -15,6 +9,7 @@ from gui.worker import MuxTask, WorkerSignals
 from utils.file_matcher import match_files
 from core.subtitle_parser import SUB_EXTENSIONS, VIDEO_EXTENSIONS
 from core.ffmpeg_locator import get_ffmpeg_version
+from utils.i18n import t, set_language, get_language, available_languages, language_name, on_language_changed
 
 SUB_EXTS = " ".join(f"*{ext}" for ext in SUB_EXTENSIONS)
 VIDEO_EXTS = " ".join(f"*{ext}" for ext in VIDEO_EXTENSIONS)
@@ -35,6 +30,7 @@ class MainWindow(QMainWindow):
         self._init_tray()
         self._init_ui()
         self._retranslate()
+        on_language_changed(lambda code: self._retranslate())
         self._check_ffmpeg()
 
     def _init_tray(self):
@@ -76,6 +72,15 @@ class MainWindow(QMainWindow):
         btn_row.addWidget(self.btn_add_folder)
         btn_row.addWidget(self.btn_clear)
         btn_row.addStretch()
+        self.lbl_ui_language = QLabel()
+        btn_row.addWidget(self.lbl_ui_language)
+        self.ui_lang_combo = QComboBox()
+        for code in available_languages():
+            self.ui_lang_combo.addItem(language_name(code), code)
+        self.ui_lang_combo.setCurrentIndex(self.ui_lang_combo.findData(get_language()))
+        self.ui_lang_combo.setFixedWidth(110)
+        self.ui_lang_combo.currentIndexChanged.connect(self._on_ui_language_changed)
+        btn_row.addWidget(self.ui_lang_combo)
         self.lbl_count = QLabel()
         self.lbl_count.setStyleSheet("color: #D6D8DB; font-weight: 600;")
         btn_row.addWidget(self.lbl_count)
@@ -160,46 +165,50 @@ class MainWindow(QMainWindow):
         self.btn_cancel.clicked.connect(self._cancel)
 
     def _retranslate(self):
-        self.setWindowTitle("SubBake")
-        self.lbl_title.setText("SubBake")
-        self.lbl_subtitle.setText("The easiest way to embed subtitles into MKV / MP4 / WebM")
-        self.btn_add_files.setText("Add files")
-        self.btn_add_folder.setText("Add folder")
-        self.btn_clear.setText("Clear list")
-        self.btn_output.setText("Output folder")
-        self.btn_start.setText("Start SubBake")
-        self.btn_cancel.setText("Cancel")
-        self.lbl_sub_language.setText("Subtitle language:")
-        self.lbl_sync.setText("  Sync (ms):")
-        self.lbl_total_progress.setText("Overall progress:")
-        self.lbl_count.setText(f"{len(self.pairs)} files")
-        self.chk_overwrite.setText("Overwrite original")
-        self.chk_default_sub.setText("Set as default subtitle")
-        self.chk_default_sub.setToolTip("Mark the newly embedded subtitle as the default track")
-        self.spin_offset.setToolTip("Positive = delay subtitles, negative = advance subtitles")
-        self.tray.setToolTip("SubBake")
-        self.table.setHorizontalHeaderLabels([
-            "Video file", "Subtitle file", "Format", "Progress", "Status",
-        ])
+        self.setWindowTitle(t("app.window_title"))
+        self.lbl_title.setText(t("app.title"))
+        self.lbl_subtitle.setText(t("app.subtitle"))
+        self.btn_add_files.setText(t("btn.add_files"))
+        self.btn_add_folder.setText(t("btn.add_folder"))
+        self.btn_clear.setText(t("btn.clear"))
+        self.btn_output.setText(t("btn.output_dir"))
+        self.btn_start.setText(t("btn.start"))
+        self.btn_cancel.setText(t("btn.cancel"))
+        self.lbl_ui_language.setText(t("label.ui_language"))
+        self.lbl_sub_language.setText(t("label.sub_language"))
+        self.lbl_sync.setText("  " + t("label.sync"))
+        self.lbl_total_progress.setText(t("label.total_progress"))
+        self.lbl_count.setText(t("label.file_count", count=len(self.pairs)))
+        self.chk_overwrite.setText(t("chk.overwrite"))
+        self.chk_default_sub.setText(t("chk.default_sub"))
+        self.chk_default_sub.setToolTip(t("tip.default_sub"))
+        self.spin_offset.setToolTip(t("tip.offset"))
+        self.tray.setToolTip(t("tray.tooltip"))
+        self.table.setHorizontalHeaderLabels([t("table.video"), t("table.subtitle"), t("table.format"), t("table.progress"), t("table.status")])
         if self.output_dir is None:
-            self.lbl_output.setText("Same folder as the source")
+            self.lbl_output.setText(t("label.output_same"))
         for row, pending in enumerate(self._row_pending):
             if pending:
-                self.table.setItem(row, 4, QTableWidgetItem("Waiting"))
+                self.table.setItem(row, 4, QTableWidgetItem(t("status.waiting")))
+
+    def _on_ui_language_changed(self, index: int):
+        code = self.ui_lang_combo.itemData(index)
+        if code:
+            set_language(code)
 
     def _check_ffmpeg(self):
         try:
             version = get_ffmpeg_version()
             self.status_bar.showMessage(version)
-            self.log_panel.append(f"[System] {version}")
+            self.log_panel.append(t("log.system", version=version))
         except FileNotFoundError:
             self.status_bar.showMessage("FFmpeg was not found")
             self.btn_start.setEnabled(False)
-            self.log_panel.append("[Error] FFmpeg was not found. Please run download_ffmpeg.py.")
+            self.log_panel.append(t("log.ffmpeg_missing"))
             QMessageBox.critical(
                 self,
-                "FFmpeg not found",
-                "FFmpeg was not found.\nRun download_ffmpeg.py or install FFmpeg on your system.",
+                t("msg.ffmpeg_missing_title"),
+                t("ffmpeg.not_found"),
             )
 
     def _on_files_dropped(self, paths: list[Path]):
@@ -208,18 +217,12 @@ class MainWindow(QMainWindow):
         new_pairs = match_files(mkvs, subs)
         self._add_pairs(new_pairs)
         self.log_panel.append(
-            f"[Drop] {len(paths)} files -> {len(new_pairs)} pairs matched"
+            t("log.dropped", files=len(paths), pairs=len(new_pairs))
         )
 
     def _add_files(self):
-        filter_str = (
-            f"Media/subtitle files ({VIDEO_EXTS} {SUB_EXTS})"
-            + ";;"
-            + "All files (*)"
-        )
-        files, _ = QFileDialog.getOpenFileNames(
-            self, "Select files", "", filter_str
-        )
+        filter_str = (t("filter.media", exts=f"{VIDEO_EXTS} {SUB_EXTS}") + ";;" + t("filter.all"))
+        files, _ = QFileDialog.getOpenFileNames(self, t("dialog.select_files"), "", filter_str)
         if files:
             paths = [Path(f) for f in files]
             mkvs = [p for p in paths if p.suffix.lower() in VIDEO_EXTENSIONS]
@@ -227,7 +230,7 @@ class MainWindow(QMainWindow):
             self._add_pairs(match_files(mkvs, subs))
 
     def _add_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, "Select folder")
+        folder = QFileDialog.getExistingDirectory(self, t("dialog.select_folder"))
         if folder:
             root = Path(folder)
             all_files = list(root.rglob("*"))
@@ -235,18 +238,14 @@ class MainWindow(QMainWindow):
             subs = [f for f in all_files if f.suffix.lower() in SUB_EXTENSIONS]
             new_pairs = match_files(mkvs, subs)
             self._add_pairs(new_pairs)
-            self.log_panel.append(
-                f"[Folder] {root.name}/ -> {len(new_pairs)} pairs matched"
-            )
+            self.log_panel.append(t("log.folder", name=root.name, pairs=len(new_pairs)))
 
     def _select_output_dir(self):
-        folder = QFileDialog.getExistingDirectory(self, "Select output folder")
+        folder = QFileDialog.getExistingDirectory(self, t("dialog.select_output"))
         if folder:
             self.output_dir = Path(folder)
             self.lbl_output.setText(str(self.output_dir))
-            self.lbl_output.setStyleSheet(
-                "color: #5B8DEF; font-size: 11px;"
-            )
+            self.lbl_output.setStyleSheet("color: #5B8DEF; font-size: 11px;")
 
     def _add_pairs(self, new_pairs: list[tuple[Path, Path]]):
         existing = {(m, s) for m, s in self.pairs}
@@ -258,14 +257,10 @@ class MainWindow(QMainWindow):
                 self._row_pending.append(True)
                 self.table.setItem(row, 0, QTableWidgetItem(mkv.name))
                 self.table.setItem(row, 1, QTableWidgetItem(sub.name))
-                self.table.setItem(
-                    row, 2, QTableWidgetItem(
-                        sub.suffix.upper().lstrip(".")
-                    )
-                )
+                self.table.setItem(row, 2, QTableWidgetItem(sub.suffix.upper().lstrip(".")))
                 self.table.setItem(row, 3, QTableWidgetItem("-"))
-                self.table.setItem(row, 4, QTableWidgetItem("Waiting"))
-        self.lbl_count.setText(f"{len(self.pairs)} files")
+                self.table.setItem(row, 4, QTableWidgetItem(t("status.waiting")))
+        self.lbl_count.setText(t("label.file_count", count=len(self.pairs)))
 
     def _clear(self):
         self.pairs.clear()
@@ -273,12 +268,12 @@ class MainWindow(QMainWindow):
         self.table.setRowCount(0)
         self.progress.setValue(0)
         self.progress.setMaximum(100)
-        self.lbl_count.setText("0 files")
+        self.lbl_count.setText(t("label.file_count", count=0))
         self.log_panel.clear()
 
     def _start(self):
         if not self.pairs:
-            QMessageBox.warning(self, "Notice", "There are no files to process.")
+            QMessageBox.warning(self, t("msg.notice"), t("msg.no_files"))
             return
         self.btn_start.setEnabled(False)
         self.btn_cancel.setEnabled(True)
@@ -297,24 +292,11 @@ class MainWindow(QMainWindow):
         self.signals.log.connect(self._on_log)
         lang = self.lang_combo.currentText()
         overwrite = self.chk_overwrite.isChecked()
-        self.log_panel.append(
-            f"\n[Start] Processing {self.total} files "
-            f"(language: {lang}, overwrite: {'yes' if overwrite else 'no'})"
-        )
+        self.log_panel.append(t("log.start", total=self.total, lang=lang, overwrite=t("common.yes") if overwrite else t("common.no")))
         offset = self.spin_offset.value()
         set_default = self.chk_default_sub.isChecked()
         for i, (mkv, sub) in enumerate(self.pairs):
-            task = MuxTask(
-                index=i,
-                mkv_path=mkv,
-                sub_path=sub,
-                output_dir=self.output_dir,
-                language=lang,
-                overwrite=overwrite,
-                offset_ms=offset,
-                set_default=set_default,
-                signals=self.signals,
-            )
+            task = MuxTask(index=i, mkv_path=mkv, sub_path=sub, output_dir=self.output_dir, language=lang, overwrite=overwrite, offset_ms=offset, set_default=set_default, signals=self.signals)
             self._active_tasks.append(task)
             self.thread_pool.start(task)
 
@@ -325,7 +307,7 @@ class MainWindow(QMainWindow):
         running = self.thread_pool.activeThreadCount()
         self.total = self.completed + running
         self.progress.setMaximum(max(self.total, 1))
-        self.log_panel.append("[Cancel] Cancelling the remaining tasks...")
+        self.log_panel.append(t("log.cancel"))
         self.btn_cancel.setEnabled(False)
         if running == 0:
             self.btn_start.setEnabled(True)
@@ -333,7 +315,7 @@ class MainWindow(QMainWindow):
             self.btn_add_folder.setEnabled(True)
             self.btn_clear.setEnabled(True)
             self._active_tasks.clear()
-            self.log_panel.append("\n[Cancelled] All tasks were cancelled.")
+            self.log_panel.append(t("log.cancel_done"))
 
     def _on_progress(self, index: int, msg: str):
         if index < len(self._row_pending):
@@ -352,7 +334,7 @@ class MainWindow(QMainWindow):
             self._row_pending[index] = False
         if success:
             self.table.setItem(index, 3, QTableWidgetItem("100%"))
-            self.table.setItem(index, 4, QTableWidgetItem("Done"))
+            self.table.setItem(index, 4, QTableWidgetItem(t("worker.done")))
         else:
             self.table.setItem(index, 4, QTableWidgetItem(f"Failed: {msg[:30]}"))
         self.completed += 1
@@ -364,16 +346,8 @@ class MainWindow(QMainWindow):
             self.btn_add_folder.setEnabled(True)
             self.btn_clear.setEnabled(True)
             self._active_tasks.clear()
-            self.log_panel.append(f"\n[Finished] All {self.total} files were processed!")
+            self.log_panel.append(t("log.all_done", total=self.total))
             QApplication.beep()
             if self.tray.isVisible():
-                self.tray.showMessage(
-                    "SubBake finished",
-                    f"All {self.total} files were processed!",
-                    QSystemTrayIcon.MessageIcon.Information,
-                    3000,
-                )
-            QMessageBox.information(
-                self, "SubBake finished",
-                f"All {self.total} files were processed!",
-            )
+                self.tray.showMessage(t("msg.done_title"), t("msg.done", total=self.total), QSystemTrayIcon.MessageIcon.Information, 3000)
+            QMessageBox.information(self, t("msg.done_title"), t("msg.done", total=self.total))
