@@ -1,4 +1,5 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QTextEdit
+from utils.i18n import t, on_language_changed
 
 class LogPanel(QWidget):
     def __init__(self, parent=None):
@@ -26,7 +27,7 @@ class LogPanel(QWidget):
         self.retranslate()
 
     def retranslate(self):
-        label = "Hide log" if self._expanded else "Show log"
+        label = t("log.hide") if self._expanded else t("log.show")
         arrow = "▲" if self._expanded else "▼"
         self._toggle_btn.setText(f"{label} {arrow}")
 

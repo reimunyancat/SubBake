@@ -3,6 +3,7 @@ from PySide6.QtWidgets import QLabel
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QDragEnterEvent, QDropEvent
 from core.subtitle_parser import SUB_EXTENSIONS, VIDEO_EXTENSIONS
+from utils.i18n import t, on_language_changed
 
 _ACCEPTED_EXTS = VIDEO_EXTENSIONS | set(SUB_EXTENSIONS.keys())
 
@@ -37,9 +38,10 @@ class DropArea(QLabel):
         self.setMinimumHeight(80)
         self.setStyleSheet(self._IDLE_STYLE)
         self.retranslate()
+        on_language_changed(lambda code: self.retranslate())
 
     def retranslate(self):
-        self.setText("Drag MKV / subtitle files here")
+        self.setText(t("drop.hint"))
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():

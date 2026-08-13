@@ -5,6 +5,7 @@ import tarfile
 import shutil
 import requests
 from pathlib import Path
+from utils.i18n import t
 
 FFMPEG_DIR = Path(__file__).parent / "ffmpeg"
 _MACOS_ARM_FALLBACK = "https://evermeet.cx/ffmpeg/getrelease/zip"
@@ -28,7 +29,7 @@ def _get_download_url() -> str:
             "latest/ffmpeg-master-latest-linux64-gpl.tar.xz"
         )
     else:
-        raise RuntimeError(f"Unsupported OS: {system}")
+        raise RuntimeError(t("dl.unsupported_os", system=system))
 
 def _normalize_archive_name(url: str) -> str:
     archive_name = url.split("/")[-1]
@@ -42,14 +43,14 @@ def download_ffmpeg():
     FFMPEG_DIR.mkdir(exist_ok=True)
     archive_name = _normalize_archive_name(url)
     archive_path = FFMPEG_DIR / archive_name
-    print(f"[SubBake] Downloading FFmpeg... ({system} / {platform.machine()})")
+    print(t("dl.downloading", system=system, machine=platform.machine()))
     try:
         resp = requests.get(url, stream=True, timeout=300, allow_redirects=True)
         resp.raise_for_status()
     except requests.RequestException:
         if system == "Darwin" and ("arm" in machine or "aarch64" in machine):
-            print("[SubBake] Primary URL failed, trying the fallback URL...")
-            print("[SubBake] The fallback binary is an Intel (x86_64) build. Rosetta 2 may be required.")
+            print(t("dl.fallback"))
+            print(t("dl.rosetta"))
             url = _MACOS_ARM_FALLBACK
             archive_name = _normalize_archive_name(url)
             archive_path = FFMPEG_DIR / archive_name
@@ -65,9 +66,9 @@ def download_ffmpeg():
             downloaded += len(chunk)
             if total:
                 pct = downloaded * 100 // total
-                print(f"\r[SubBake] Download {pct}%", end="", flush=True)
+                print("\r" + t("dl.progress", pct=pct), end="", flush=True)
     print()
-    print("[SubBake] Extracting...")
+    print(t("dl.extracting"))
     tmp_dir = FFMPEG_DIR / "_tmp"
     tmp_dir.mkdir(exist_ok=True)
     try:
@@ -81,16 +82,16 @@ def download_ffmpeg():
                 else:
                     tf.extractall(tmp_dir)
         else:
-            raise RuntimeError(f"Unknown archive format: {archive_name}")
+            raise RuntimeError(t("dl.unknown_archive", name=archive_name))
         exe_name = "ffmpeg.exe" if system == "Windows" else "ffmpeg"
         found = [f for f in tmp_dir.rglob(exe_name) if f.is_file()]
         if not found:
-            raise FileNotFoundError(f"{exe_name} was not found in the archive.")
+            raise FileNotFoundError(t("dl.not_in_archive", exe=exe_name))
         dest = FFMPEG_DIR / exe_name
         shutil.copy2(found[0], dest)
         if system != "Windows":
             dest.chmod(0o755)
-        print(f"[SubBake] FFmpeg is ready: {dest}")
+        print(t("dl.ready", path=dest))
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
         archive_path.unlink(missing_ok=True)

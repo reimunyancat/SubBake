@@ -4,6 +4,7 @@ import shutil
 import platform
 from pathlib import Path
 from functools import lru_cache
+from utils.i18n import t
 
 def _get_bundle_dir() -> Path:
     if getattr(sys, "frozen", False):
@@ -28,10 +29,7 @@ def find_ffmpeg() -> str:
     system_path = shutil.which("ffmpeg")
     if system_path:
         return system_path
-    raise FileNotFoundError(
-        "FFmpeg was not found.\n"
-        "Run download_ffmpeg.py or install FFmpeg on your system."
-    )
+    raise FileNotFoundError(t("ffmpeg.not_found"))
 
 @lru_cache(maxsize=1)
 def get_ffmpeg_version() -> str:

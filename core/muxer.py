@@ -5,6 +5,7 @@ import threading
 from pathlib import Path
 from typing import Callable, Optional
 from core.ffmpeg_locator import find_ffmpeg
+from utils.i18n import t
 
 SUB_CODEC_MAP = {
     ".srt": "srt",
@@ -42,11 +43,11 @@ def mux_subtitle_file(mkv_path: Path, sub_path: Path, output_path: Path, languag
     out_ext = output_path.suffix.lower()
     if out_ext == ".mp4":
         if sub_path.suffix.lower() == ".sup":
-            raise ValueError("MP4 does not support PGS/SUP bitmap subtitles.")
+            raise ValueError(t("mux.mp4_no_sup"))
         codec = MP4_SUB_CODEC
     elif out_ext == ".webm":
         if sub_path.suffix.lower() == ".sup":
-            raise ValueError("WebM does not support PGS/SUP bitmap subtitles.")
+            raise ValueError(t("mux.webm_no_sup"))
         codec = WEBM_SUB_CODEC
     else:
         codec = SUB_CODEC_MAP.get(sub_path.suffix.lower(), "srt")
@@ -92,7 +93,7 @@ def mux_subtitle_file(mkv_path: Path, sub_path: Path, output_path: Path, languag
                 proc.terminate()
                 proc.wait()
                 stderr_thread.join(timeout=2)
-                raise RuntimeError("The task was cancelled by the user.")
+                raise RuntimeError(t("mux.cancelled"))
             line = line.strip()
             if not duration_ms or not on_progress:
                 continue
@@ -115,8 +116,11 @@ def mux_subtitle_file(mkv_path: Path, sub_path: Path, output_path: Path, languag
     if proc.returncode != 0:
         stderr_output = "".join(stderr_chunks)
         raise RuntimeError(
-            f"FFmpeg error (code {proc.returncode}):\n"
-            f"{stderr_output[-500:] if stderr_output else 'Unknown error'}"
+            t(
+                "mux.ffmpeg_error",
+                code=proc.returncode,
+                stderr=stderr_output[-500:] if stderr_output else t("mux.unknown_error"),
+            )
         )
 
 def mux_subtitle_text(mkv_path: Path, sub_content: str, output_path: Path, language: str = "kor", track_name: str = "Korean",

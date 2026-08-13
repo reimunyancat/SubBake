@@ -2,6 +2,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 from enum import Enum
+from utils.i18n import t
 
 class SubFormat(Enum):
     SMI = "smi"
@@ -35,7 +36,7 @@ def detect_format(filepath: Path) -> SubFormat:
     ext = filepath.suffix.lower()
     fmt = SUB_EXTENSIONS.get(ext)
     if fmt is None:
-        raise ValueError(f"Unsupported subtitle format: {ext}")
+        raise ValueError(t("sub.unsupported_format", ext=ext))
     return fmt
 
 def needs_conversion(fmt: SubFormat) -> bool:
@@ -102,4 +103,4 @@ def parse_subtitle(content: str, fmt: SubFormat) -> list[SubtitleEntry]:
     elif fmt == SubFormat.VTT:
         return parse_vtt(content)
     else:
-        raise ValueError(f"{fmt.value.upper()} can be muxed directly, so parsing is not needed.")
+        raise ValueError(t("sub.no_parse_needed", fmt=fmt.value.upper()))

@@ -8,6 +8,7 @@ from core.srt_converter import entries_to_srt
 from core.ass_converter import entries_to_ass
 from core.muxer import mux_subtitle_file, mux_subtitle_text
 from utils.encoding import read_with_detected_encoding
+from utils.i18n import t
 
 LANG_NAMES = {
     "kor": "Korean", "eng": "English", "jpn": "Japanese", "chi": "Chinese", "und": "Undefined"
@@ -42,22 +43,22 @@ class MuxTask(QRunnable):
     def _on_ffmpeg_progress(self, value: float):
         pct = int(value*100)
         self.signals.file_progress.emit(self.index, value)
-        self.signals.progress.emit(self.index, f"Muxing video... {pct}%")
+        self.signals.progress.emit(self.index, t("worker.muxing", pct=pct))
 
     @Slot()
     def run(self):
         out: Path | None = None
         try:
             if self._cancelled:
-                self.signals.finished.emit(self.index, False, "Cancelled")
+                self.signals.finished.emit(self.index, False, t("worker.cancelled"))
                 return
             fmt = detect_format(self.sub_path)
             self.signals.log.emit(
                 self.index,
-                f"[{self.mkv_path.name}] Format: {fmt.value.upper()}",
+                t("worker.format", name=self.mkv_path.name, fmt=fmt.value.upper())
             )
             self.signals.progress.emit(
-                self.index, f"Processing {fmt.value.upper()}..."
+                self.index, t("worker.processing", fmt=fmt.value.upper())
             )
             video_ext = self.mkv_path.suffix
             if self.overwrite:
@@ -80,18 +81,18 @@ class MuxTask(QRunnable):
                 if out is not None and out.exists():
                     if self.overwrite or out.stat().st_size == 0:
                         out.unlink(missing_ok=True)
-                self.signals.finished.emit(self.index, False, "Cancelled")
+                self.signals.finished.emit(self.index, False, t("worker.cancelled"))
                 return
             track_name = LANG_NAMES.get(self.language, self.language)
             if needs_conversion(fmt):
                 self.signals.progress.emit(
-                    self.index, f"Parsing {fmt.value.upper()}..."
+                    self.index, t("worker.parsing", fmt=fmt.value.upper())
                 )
                 content = read_with_detected_encoding(self.sub_path)
                 entries = parse_subtitle(content, fmt)
                 self.signals.log.emit(
                     self.index,
-                    f"[{self.mkv_path.name}] Parsed {len(entries)} subtitle entries",
+                    t("worker.parsed", name=self.mkv_path.name, count=len(entries))
                 )
                 if fmt == SubFormat.SMI:
                     target = "ASS"
@@ -101,7 +102,7 @@ class MuxTask(QRunnable):
                     target = "SRT"
                     converted = entries_to_srt(entries)
                     sub_suffix = ".srt"
-                self.signals.progress.emit(self.index, f"Converting to {target}...")
+                self.signals.progress.emit(self.index, t("worker.converting", fmt=target))
                 mux_subtitle_text(
                     self.mkv_path, converted, out, self.language,
                     track_name=track_name,
@@ -122,16 +123,10 @@ class MuxTask(QRunnable):
                 )
             if self.overwrite:
                 shutil.move(str(out), str(self.mkv_path))
-            self.signals.log.emit(
-                self.index,
-                f"[{self.mkv_path.name}] Done",
-            )
-            self.signals.finished.emit(self.index, True, "Done")
+            self.signals.log.emit(self.index, t("worker.done_log", name=self.mkv_path.name))
+            self.signals.finished.emit(self.index, True, t("worker.done"))
         except Exception as e:
             if out is not None and out.exists():
                 out.unlink(missing_ok=True)
-            self.signals.log.emit(
-                self.index,
-                    f"[{self.mkv_path.name}] Failed: {e}",
-            )
+            self.signals.log.emit(self.index, t("worker.failed_log", name=self.mkv_path.name, error=e))
             self.signals.finished.emit(self.index, False, str(e))
