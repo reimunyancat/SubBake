@@ -1,5 +1,5 @@
 from pathlib import Path
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog, QTableWidget, QTableWidgetItem, QProgressBar, QComboBox, QCheckBox, QLabel, QHeaderView, QMessageBox, QStatusBar, QSpinBox, QApplication, QSystemTrayIcon
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog, QTableWidget, QTableWidgetItem, QProgressBar, QComboBox, QCheckBox, QLabel, QHeaderView, QMessageBox, QStatusBar, QSpinBox, QApplication, QSystemTrayIcon, QSystemTrayIcon, QListView, QTreeView, QAbstractItemView
 from PySide6.QtCore import Qt, QThreadPool
 from PySide6.QtGui import QIcon, QPixmap, QColor
 from gui.styles import MAIN_STYLE
@@ -55,13 +55,12 @@ class MainWindow(QMainWindow):
         self.lbl_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.lbl_title)
         self.lbl_subtitle = QLabel()
-        self.lbl_subtitle.setStyleSheet(
-            "font-size: 12px; color: #8B9096; margin-bottom: 10px;"
-        )
+        self.lbl_subtitle.setStyleSheet("font-size: 12px; color: #8B9096; margin-bottom: 10px;")
         self.lbl_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.lbl_subtitle)
         self.drop_area = DropArea()
         self.drop_area.files_dropped.connect(self._on_files_dropped)
+        self.drop_area.clicked.connect(self._on_drop_area_clicked)
         layout.addWidget(self.drop_area)
         btn_row = QHBoxLayout()
         btn_row.setSpacing(8)
@@ -97,9 +96,7 @@ class MainWindow(QMainWindow):
         self.table.setColumnWidth(4, 100)
         self.table.setAlternatingRowColors(True)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows
-        )
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         layout.addWidget(self.table, stretch=1)
         opt_row = QHBoxLayout()
         opt_row.setSpacing(12)
@@ -228,6 +225,31 @@ class MainWindow(QMainWindow):
             mkvs = [p for p in paths if p.suffix.lower() in VIDEO_EXTENSIONS]
             subs = [p for p in paths if p.suffix.lower() in SUB_EXTENSIONS]
             self._add_pairs(match_files(mkvs, subs))
+
+    def _on_drop_area_clicked(self):
+        dialog = QFileDialog(self, t("dialog.select_files"))
+        dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
+        dialog.setFileMode(QFileDialog.FileMode.Directory)
+        for view in dialog.findChildren(QListView) + dialog.findChildren(QTreeView):
+            view.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        if not dialog.exec():
+            return
+        paths: list[Path] = []
+        for selected in dialog.selectedFiles():
+            p = Path(selected)
+            if p.is_dir():
+                for f in p.rglob("*"):
+                    if f.suffix.lower() in SUB_EXTENSIONS or f.suffix.lower() in VIDEO_EXTENSIONS:
+                        paths.append(f)
+            elif p.suffix.lower() in SUB_EXTENSIONS or p.suffix.lower() in VIDEO_EXTENSIONS:
+                paths.append(p)
+        if paths:
+            mkvs = [f for f in paths if f.suffix.lower() in VIDEO_EXTENSIONS]
+            subs = [f for f in paths if f.suffix.lower() in SUB_EXTENSIONS]
+            new_pairs = match_files(mkvs, subs)
+            self._add_pairs(new_pairs)
+            self.log_panel.append(t("log.dropped", files=len(paths), pairs=len(new_pairs)))
+
 
     def _add_folder(self):
         folder = QFileDialog.getExistingDirectory(self, t("dialog.select_folder"))

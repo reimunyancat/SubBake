@@ -1,7 +1,7 @@
 from pathlib import Path
 from PySide6.QtWidgets import QLabel
 from PySide6.QtCore import Signal, Qt
-from PySide6.QtGui import QDragEnterEvent, QDropEvent
+from PySide6.QtGui import QDragEnterEvent, QDropEvent, QMouseEvent
 from core.subtitle_parser import SUB_EXTENSIONS, VIDEO_EXTENSIONS
 from utils.i18n import t, on_language_changed
 
@@ -9,6 +9,7 @@ _ACCEPTED_EXTS = VIDEO_EXTENSIONS | set(SUB_EXTENSIONS.keys())
 
 class DropArea(QLabel):
     files_dropped = Signal(list)
+    clicked = Signal()
 
     _IDLE_STYLE = """
     QLabel {
@@ -67,3 +68,8 @@ class DropArea(QLabel):
                 paths.append(p)
         if paths:
             self.files_dropped.emit(paths)
+
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+        super().mouseReleaseEvent(event)
