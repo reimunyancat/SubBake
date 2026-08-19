@@ -6,7 +6,7 @@ from PySide6.QtCore import QObject, Signal, QRunnable, Slot
 from core.subtitle_parser import SubFormat, detect_format, needs_conversion, parse_subtitle
 from core.srt_converter import entries_to_srt
 from core.ass_converter import entries_to_ass
-from core.muxer import mux_subtitle_file, mux_subtitle_text
+from core.muxer import mux_subtitle_file, mux_subtitle_text, burn_subtitle
 from utils.encoding import read_with_detected_encoding
 from utils.i18n import t
 
@@ -23,7 +23,7 @@ class WorkerSignals(QObject):
     log = Signal(int, str)
 
 class MuxTask(QRunnable):
-    def __init__(self, index: int, mkv_path: Path, sub_path: Path, output_dir: Path | None, language: str, overwrite: bool, offset_ms: int, set_default: bool, signals: WorkerSignals):
+    def __init__(self, index: int, mkv_path: Path, sub_path: Path, output_dir: Path | None, language: str, overwrite: bool, offset_ms: int, set_default: bool, signals: WorkerSignals, mode: str = "mux"):
         super().__init__()
         self.index = index
         self.mkv_path = mkv_path
@@ -33,6 +33,7 @@ class MuxTask(QRunnable):
         self.overwrite = overwrite
         self.offset_ms = offset_ms
         self.set_default = set_default
+        self.mode = mode
         self.signals = signals
         self._cancelled = False
         self.setAutoDelete(False)
@@ -83,44 +84,87 @@ class MuxTask(QRunnable):
                         out.unlink(missing_ok=True)
                 self.signals.finished.emit(self.index, False, t("worker.cancelled"))
                 return
-            track_name = LANG_NAMES.get(self.language, self.language)
-            if needs_conversion(fmt):
-                self.signals.progress.emit(
-                    self.index, t("worker.parsing", fmt=fmt.value.upper())
-                )
-                content = read_with_detected_encoding(self.sub_path)
-                entries = parse_subtitle(content, fmt)
-                self.signals.log.emit(
-                    self.index,
-                    t("worker.parsed", name=self.mkv_path.name, count=len(entries))
-                )
-                if fmt == SubFormat.SMI:
-                    target = "ASS"
-                    converted = entries_to_ass(entries)
-                    sub_suffix = ".ass"
+            if self.mode == "burn":
+                if fmt == SubFormat.SUP:
+                    raise ValueError("Bitmap (SUP/PGS) subtitles cannot be burned in.")
+                if needs_conversion(fmt):
+                    self.signals.progress.emit(
+                        self.index, t("worker.parsing", fmt=fmt.value.upper())
+                    )
+                    content = read_with_detected_encoding(self.sub_path)
+                    entries = parse_subtitle(content, fmt)
+                    self.signals.log.emit(
+                        self.index,
+                        t("worker.parsed", name=self.mkv_path.name, count=len(entries))
+                    )
+                    if fmt == SubFormat.SMI:
+                        target = "ASS"
+                        converted = entries_to_ass(entries)
+                        sub_suffix = ".ass"
+                    else:
+                        target = "SRT"
+                        converted = entries_to_srt(entries)
+                        sub_suffix = ".srt"
+                    self.signals.progress.emit(self.index, t("worker.converting", fmt=target))
+                    tmp = tempfile.NamedTemporaryFile(suffix=sub_suffix, delete=False)
+                    tmp_path = Path(tmp.name)
+                    try:
+                        tmp.write(converted.encode("utf-8"))
+                        tmp.close()
+                        burn_subtitle(
+                            self.mkv_path, tmp_path, out,
+                            offset_ms=self.offset_ms,
+                            on_progress=self._on_ffmpeg_progress,
+                            cancel_check=lambda: self._cancelled,
+                        )
+                    finally:
+                        tmp_path.unlink(missing_ok=True)
                 else:
-                    target = "SRT"
-                    converted = entries_to_srt(entries)
-                    sub_suffix = ".srt"
-                self.signals.progress.emit(self.index, t("worker.converting", fmt=target))
-                mux_subtitle_text(
-                    self.mkv_path, converted, out, self.language,
-                    track_name=track_name,
-                    offset_ms=self.offset_ms,
-                    set_default=self.set_default,
-                    on_progress=self._on_ffmpeg_progress,
-                    cancel_check=lambda: self._cancelled,
-                    sub_suffix=sub_suffix,
-                )
+                    burn_subtitle(
+                        self.mkv_path, self.sub_path, out,
+                        offset_ms=self.offset_ms,
+                        on_progress=self._on_ffmpeg_progress,
+                        cancel_check=lambda: self._cancelled,
+                    )
             else:
-                mux_subtitle_file(
-                    self.mkv_path, self.sub_path, out, self.language,
-                    track_name=track_name,
-                    offset_ms=self.offset_ms,
-                    set_default=self.set_default,
-                    on_progress=self._on_ffmpeg_progress,
-                    cancel_check=lambda: self._cancelled,
-                )
+                track_name = LANG_NAMES.get(self.language, self.language)
+                if needs_conversion(fmt):
+                    self.signals.progress.emit(
+                        self.index, t("worker.parsing", fmt=fmt.value.upper())
+                    )
+                    content = read_with_detected_encoding(self.sub_path)
+                    entries = parse_subtitle(content, fmt)
+                    self.signals.log.emit(
+                        self.index,
+                        t("worker.parsed", name=self.mkv_path.name, count=len(entries))
+                    )
+                    if fmt == SubFormat.SMI:
+                        target = "ASS"
+                        converted = entries_to_ass(entries)
+                        sub_suffix = ".ass"
+                    else:
+                        target = "SRT"
+                        converted = entries_to_srt(entries)
+                        sub_suffix = ".srt"
+                    self.signals.progress.emit(self.index, t("worker.converting", fmt=target))
+                    mux_subtitle_text(
+                        self.mkv_path, converted, out, self.language,
+                        track_name=track_name,
+                        offset_ms=self.offset_ms,
+                        set_default=self.set_default,
+                        on_progress=self._on_ffmpeg_progress,
+                        cancel_check=lambda: self._cancelled,
+                        sub_suffix=sub_suffix,
+                    )
+                else:
+                    mux_subtitle_file(
+                        self.mkv_path, self.sub_path, out, self.language,
+                        track_name=track_name,
+                        offset_ms=self.offset_ms,
+                        set_default=self.set_default,
+                        on_progress=self._on_ffmpeg_progress,
+                        cancel_check=lambda: self._cancelled,
+                    )
             if self.overwrite:
                 shutil.move(str(out), str(self.mkv_path))
             self.signals.log.emit(self.index, t("worker.done_log", name=self.mkv_path.name))

@@ -75,12 +75,45 @@ function watch(jobId) {
       downloadEl.href = `api/jobs/${jobId}/download`;
       downloadEl.hidden = false;
       startBtn.disabled = false;
+      showPreview(jobId);
     } else if (job.status === "failed") {
       stopPolling();
       statusEl.textContent = `Failed: ${job.error || "unknown error"}`;
       startBtn.disabled = false;
     }
-  }, 700);
+  }, 1500);
+}
+
+async function showPreview(jobId) {
+  const res = await fetch(`api/jobs/${jobId}/preview`);
+  if (!res.ok) return;
+  const preview = await res.json();
+  const section = document.getElementById("preview");
+  const video = document.getElementById("previewVideo");
+  const msg = document.getElementById("previewMsg");
+  section.hidden = false;
+  msg.textContent = "";
+  video.querySelectorAll("track").forEach((t) => t.remove());
+  video.removeAttribute("src");
+  if (!preview.playable) {
+    msg.textContent = `The ${preview.container} container cannot play in a browser. Download it and open it in VLC or mpv, then enable the subtitle track.`;
+    return;
+  }
+  if (preview.vttUrl) {
+    const track = document.createElement("track");
+    track.kind = "subtitles";
+    track.label = "Subtitles";
+    track.srclang = "en";
+    track.src = preview.vttUrl;
+    track.default = true;
+    video.appendChild(track);
+    track.addEventListener("load", () => {
+      if (video.textTracks && video.textTracks.length > 0) video.textTracks[0].mode = "showing";
+    });
+  }
+  video.src = preview.videoUrl;
+  video.load();
+  video.play().catch(() => {});
 }
 
 startBtn.addEventListener("click", async () => {
@@ -90,6 +123,7 @@ startBtn.addEventListener("click", async () => {
   }
   stopPolling();
   downloadEl.hidden = true;
+  document.getElementById("preview").hidden = true;
   fill.style.width = "0%";
   startBtn.disabled = true;
   statusEl.textContent = "Uploading...";
@@ -97,6 +131,7 @@ startBtn.addEventListener("click", async () => {
   const body = new FormData();
   body.append("video", videoFile);
   body.append("subtitle", subFile);
+  body.append("mode", document.getElementById("mode").value);
   body.append("language", document.getElementById("language").value);
   body.append("offset_ms", document.getElementById("offset").value || "0");
   body.append(

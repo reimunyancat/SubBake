@@ -19,6 +19,13 @@
       </section>
       <div class="options">
         <label
+          >Mode
+          <select id="mode">
+            <option value="mux">Embed as track</option>
+            <option value="burn">Render onto video</option>
+          </select>
+        </label>
+        <label
           >Language
           <select id="language">
             <option value="kor">kor</option>
@@ -47,6 +54,10 @@
       <div class="bar"><div id="fill" class="fill"></div></div>
       <p id="status" class="status">Waiting for files</p>
       <a id="download" class="download" hidden>Download result</a>
+      <section id="preview" class="preview" hidden>
+        <video id="previewVideo" controls></video>
+        <p id="previewMsg" class="preview-msg"></p>
+      </section>
       <footer id="footer">
         GPL v3 · FFmpeg bundled · files are deleted automatically
       </footer>

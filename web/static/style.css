@@ -132,6 +132,24 @@ input[type="number"] {
 .download:hover {
   background: #4a7d5c;
 }
+.preview {
+  margin-top: 18px;
+}
+.preview video {
+  display: block;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: #000;
+}
+.preview-msg {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
 footer {
   margin-top: 24px;
   text-align: center;

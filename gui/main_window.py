@@ -111,6 +111,8 @@ class MainWindow(QMainWindow):
         self.chk_default_sub = QCheckBox()
         self.chk_default_sub.setChecked(True)
         opt_row.addWidget(self.chk_default_sub)
+        self.chk_burn = QCheckBox()
+        opt_row.addWidget(self.chk_burn)
         self.lbl_sync = QLabel()
         opt_row.addWidget(self.lbl_sync)
         self.spin_offset = QSpinBox()
@@ -179,6 +181,8 @@ class MainWindow(QMainWindow):
         self.chk_overwrite.setText(t("chk.overwrite"))
         self.chk_default_sub.setText(t("chk.default_sub"))
         self.chk_default_sub.setToolTip(t("tip.default_sub"))
+        self.chk_burn.setText(t("chk.burn"))
+        self.chk_burn.setToolTip(t("tip.burn"))
         self.spin_offset.setToolTip(t("tip.offset"))
         self.tray.setToolTip(t("tray.tooltip"))
         self.table.setHorizontalHeaderLabels([t("table.video"), t("table.subtitle"), t("table.format"), t("table.progress"), t("table.status")])
@@ -317,8 +321,9 @@ class MainWindow(QMainWindow):
         self.log_panel.append(t("log.start", total=self.total, lang=lang, overwrite=t("common.yes") if overwrite else t("common.no")))
         offset = self.spin_offset.value()
         set_default = self.chk_default_sub.isChecked()
+        mode = "burn" if self.chk_burn.isChecked() else "mux"
         for i, (mkv, sub) in enumerate(self.pairs):
-            task = MuxTask(index=i, mkv_path=mkv, sub_path=sub, output_dir=self.output_dir, language=lang, overwrite=overwrite, offset_ms=offset, set_default=set_default, signals=self.signals)
+            task = MuxTask(index=i, mkv_path=mkv, sub_path=sub, output_dir=self.output_dir, language=lang, overwrite=overwrite, offset_ms=offset, set_default=set_default, mode=mode, signals=self.signals)
             self._active_tasks.append(task)
             self.thread_pool.start(task)
 
