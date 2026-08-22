@@ -41,5 +41,9 @@ class LogPanel(QWidget):
         sb = self._text.verticalScrollBar()
         sb.setValue(sb.maximum())
 
+    def expand(self):
+        if not self._expanded:
+            self._toggle()
+
     def clear(self):
         self._text.clear()

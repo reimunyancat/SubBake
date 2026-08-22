@@ -26,6 +26,8 @@ class MainWindow(QMainWindow):
         self.total = 0
         self._active_tasks: list = []
         self._row_pending: list[bool] = []
+        self._pending_videos: list[Path] = []
+        self._pending_subs: list[Path] = []
         self.output_dir: Path | None = None
         self._init_tray()
         self._init_ui()
@@ -212,23 +214,37 @@ class MainWindow(QMainWindow):
                 t("ffmpeg.not_found"),
             )
 
-    def _on_files_dropped(self, paths: list[Path]):
-        mkvs = [p for p in paths if p.suffix.lower() in VIDEO_EXTENSIONS]
-        subs = [p for p in paths if p.suffix.lower() in SUB_EXTENSIONS]
-        new_pairs = match_files(mkvs, subs)
+    def _ingest(self, paths: list[Path]):
+        self._pending_videos += [p for p in paths if p.suffix.lower() in VIDEO_EXTENSIONS]
+        self._pending_subs += [p for p in paths if p.suffix.lower() in SUB_EXTENSIONS]
+        new_pairs = match_files(self._pending_videos, self._pending_subs)
+        matched_v = {m for m, _ in new_pairs}
+        matched_s = {s for _, s in new_pairs}
+        rest_v = sorted((m for m in self._pending_videos if m not in matched_v), key=lambda p: p.name.lower())
+        rest_s = sorted((s for s in self._pending_subs if s not in matched_s), key=lambda p: p.name.lower())
+        new_pairs += list(zip(rest_v, rest_s))
+        paired_v = {m for m, _ in new_pairs}
+        paired_s = {s for _, s in new_pairs}
+        self._pending_videos = [m for m in self._pending_videos if m not in paired_v]
+        self._pending_subs = [s for s in self._pending_subs if s not in paired_s]
         self._add_pairs(new_pairs)
-        self.log_panel.append(
-            t("log.dropped", files=len(paths), pairs=len(new_pairs))
-        )
+        self.log_panel.append(t("log.dropped", files=len(paths), pairs=len(new_pairs)))
+        if not new_pairs and (self._pending_videos or self._pending_subs):
+            self.log_panel.expand()
+            self.status_bar.showMessage(t("msg.waiting_match", videos=len(self._pending_videos), subs=len(self._pending_subs)))
+
+    def _on_files_dropped(self, paths: list[Path]):
+        self._ingest(paths)
 
     def _add_files(self):
-        filter_str = (t("filter.media", exts=f"{VIDEO_EXTS} {SUB_EXTS}") + ";;" + t("filter.all"))
+        filter_str = (
+            t("filter.media", exts=f"{VIDEO_EXTS} {SUB_EXTS}")
+            + ";;"
+            + t("filter.all")
+        )
         files, _ = QFileDialog.getOpenFileNames(self, t("dialog.select_files"), "", filter_str)
         if files:
-            paths = [Path(f) for f in files]
-            mkvs = [p for p in paths if p.suffix.lower() in VIDEO_EXTENSIONS]
-            subs = [p for p in paths if p.suffix.lower() in SUB_EXTENSIONS]
-            self._add_pairs(match_files(mkvs, subs))
+            self._ingest([Path(f) for f in files])
 
     def _on_drop_area_clicked(self):
         dialog = QFileDialog(self, t("dialog.select_files"))
@@ -248,23 +264,13 @@ class MainWindow(QMainWindow):
             elif p.suffix.lower() in SUB_EXTENSIONS or p.suffix.lower() in VIDEO_EXTENSIONS:
                 paths.append(p)
         if paths:
-            mkvs = [f for f in paths if f.suffix.lower() in VIDEO_EXTENSIONS]
-            subs = [f for f in paths if f.suffix.lower() in SUB_EXTENSIONS]
-            new_pairs = match_files(mkvs, subs)
-            self._add_pairs(new_pairs)
-            self.log_panel.append(t("log.dropped", files=len(paths), pairs=len(new_pairs)))
-
+            self._ingest(paths)
 
     def _add_folder(self):
         folder = QFileDialog.getExistingDirectory(self, t("dialog.select_folder"))
         if folder:
             root = Path(folder)
-            all_files = list(root.rglob("*"))
-            mkvs = [f for f in all_files if f.suffix.lower() in VIDEO_EXTENSIONS]
-            subs = [f for f in all_files if f.suffix.lower() in SUB_EXTENSIONS]
-            new_pairs = match_files(mkvs, subs)
-            self._add_pairs(new_pairs)
-            self.log_panel.append(t("log.folder", name=root.name, pairs=len(new_pairs)))
+            self._ingest(list(root.rglob("*")))
 
     def _select_output_dir(self):
         folder = QFileDialog.getExistingDirectory(self, t("dialog.select_output"))
@@ -291,6 +297,8 @@ class MainWindow(QMainWindow):
     def _clear(self):
         self.pairs.clear()
         self._row_pending.clear()
+        self._pending_videos.clear()
+        self._pending_subs.clear()
         self.table.setRowCount(0)
         self.progress.setValue(0)
         self.progress.setMaximum(100)
@@ -299,8 +307,15 @@ class MainWindow(QMainWindow):
 
     def _start(self):
         if not self.pairs:
-            QMessageBox.warning(self, t("msg.notice"), t("msg.no_files"))
+            if self._pending_videos or self._pending_subs:
+                QMessageBox.warning(self, t("msg.notice"), t("msg.no_pairs"))
+            else:
+                QMessageBox.warning(self, t("msg.notice"), t("msg.no_files"))
             return
+
+        pending = len(self._pending_videos) + len(self._pending_subs)
+        if pending:
+            self.log_panel.append(t("msg.unpaired_skipped", count=pending))
         self.btn_start.setEnabled(False)
         self.btn_cancel.setEnabled(True)
         self.btn_add_files.setEnabled(False)

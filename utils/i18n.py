@@ -88,6 +88,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "common.yes": "yes",
         "common.no": "no",
         "tray.tooltip": "SubBake",
+        "msg.no_pairs": "No pairs were made. A subtitle pairs with a video of the same file name (movie.mkv + movie.srt) — or just drop one video and one subtitle together and they pair automatically.",
+        "msg.waiting_match": "{videos} video(s) and {subs} subtitle(s) waiting — a subtitle pairs with a same-named video, or one of each pairs automatically.",
+        "msg.unpaired_skipped": "{count} unpaired file(s) were skipped.",
     },
     "ko": {
         "dl.downloading": "[SubBake] FFmpeg 다운로드 중... ({system} / {machine})",
@@ -169,6 +172,9 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "common.yes": "예",
         "common.no": "아니오",
         "tray.tooltip": "SubBake",
+        "msg.no_pairs": "영상-자막 쌍이 만들어지지 않았습니다. 파일명이 같은 영상과 자막이 자동으로 짝지어지며(movie.mkv + movie.srt), 영상·자막을 하나씩 함께 넣어도 자동으로 묶입니다.",
+        "msg.waiting_match": "영상 {videos}개·자막 {subs}개가 대기 중입니다 — 같은 이름의 영상·자막이 자동으로 짝지어지며, 하나씩 넣어도 묶입니다.",
+        "msg.unpaired_skipped": "짝이 없는 {count}개 파일은 건너뛰었습니다.",
     },
 }
 
