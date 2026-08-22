@@ -10,6 +10,7 @@ env/
 venv/
 .idea/
 .vscode/
+ffmpeg/
 sample.smi
 sample_out.srt
 sample.mkv

@@ -9,7 +9,6 @@ a = Analysis(
         (f"ffmpeg/{ffmpeg_exe}", "ffmpeg"),
     ],
     datas=[
-        ("LICENSE_FFMPEG.txt", "."),
         ("LICENSE", "."),
     ],
     hiddenimports=["chardet"],
