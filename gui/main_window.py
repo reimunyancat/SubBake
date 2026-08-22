@@ -215,21 +215,22 @@ class MainWindow(QMainWindow):
             )
 
     def _ingest(self, paths: list[Path]):
-        self._pending_videos += [p for p in paths if p.suffix.lower() in VIDEO_EXTENSIONS]
-        self._pending_subs += [p for p in paths if p.suffix.lower() in SUB_EXTENSIONS]
+        self._pending_videos += [p for p in paths if p.suffix.lower() in VIDEO_EXTENSIONS and p not in self._pending_videos]
+        self._pending_subs += [p for p in paths if p.suffix.lower() in SUB_EXTENSIONS and p not in self._pending_subs]
         new_pairs = match_files(self._pending_videos, self._pending_subs)
         matched_v = {m for m, _ in new_pairs}
         matched_s = {s for _, s in new_pairs}
         rest_v = sorted((m for m in self._pending_videos if m not in matched_v), key=lambda p: p.name.lower())
         rest_s = sorted((s for s in self._pending_subs if s not in matched_s), key=lambda p: p.name.lower())
-        new_pairs += list(zip(rest_v, rest_s))
+        if len(rest_v) == 1 and len(rest_s) == 1:
+            new_pairs.append((rest_v[0], rest_s[0]))
         paired_v = {m for m, _ in new_pairs}
         paired_s = {s for _, s in new_pairs}
         self._pending_videos = [m for m in self._pending_videos if m not in paired_v]
         self._pending_subs = [s for s in self._pending_subs if s not in paired_s]
         self._add_pairs(new_pairs)
         self.log_panel.append(t("log.dropped", files=len(paths), pairs=len(new_pairs)))
-        if not new_pairs and (self._pending_videos or self._pending_subs):
+        if self._pending_videos or self._pending_subs:
             self.log_panel.expand()
             self.status_bar.showMessage(t("msg.waiting_match", videos=len(self._pending_videos), subs=len(self._pending_subs)))
 
